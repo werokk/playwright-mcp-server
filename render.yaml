@@ -14,7 +14,7 @@ services:
       - key: PLAYWRIGHT_BROWSERS_PATH
         value: /ms-playwright
       - key: API_KEY
-        generateValue: true  # Render will generate a secure random key
+        value: rnd_IKeEVzwlpCl23yMjemoWs8KAciCx
       - key: ALLOWED_ORIGINS
         value: "*"  # Change this to your web app domain(s) for production, e.g., "https://myapp.com,https://www.myapp.com"
     autoDeploy: true
