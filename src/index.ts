@@ -480,6 +480,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     const { name, arguments: args } = request.params;
+    
+    // Ensure args is defined
+    if (!args) {
+      throw new Error("Arguments are required for tool execution");
+    }
 
     switch (name) {
       case "navigate": {
