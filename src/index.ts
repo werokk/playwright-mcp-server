@@ -972,6 +972,15 @@ async function main() {
   const mode = process.env.SERVER_MODE || "http";
   
   if (mode === "http") {
+    // Initialize browser at startup for better error handling
+    try {
+      console.log('Initializing browser at startup...');
+      await ensureBrowser();
+      console.log('Browser initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize browser at startup:', error);
+      // Continue anyway - browser will be initialized on first request
+    }
     // HTTP mode for Render deployment
     const app = express();
     
@@ -1016,6 +1025,30 @@ async function main() {
     // Health check endpoint (no auth required)
     app.get("/health", (req, res) => {
       res.json({ status: "ok", service: "playwright-mcp-server" });
+    });
+    
+    // Initialize browser endpoint (for debugging)
+    app.post("/initialize", async (req, res) => {
+      try {
+        console.log('Manual browser initialization requested...');
+        await ensureBrowser();
+        console.log('Browser initialized successfully via /initialize');
+        res.json({ 
+          status: "success", 
+          message: "Browser initialized successfully",
+          browserConnected: browser !== null,
+          pageCreated: page !== null
+        });
+      } catch (error) {
+        console.error('Browser initialization failed:', error);
+        res.status(500).json({ 
+          status: "error", 
+          message: "Browser initialization failed",
+          error: error instanceof Error ? error.message : String(error),
+          browserConnected: browser !== null,
+          pageCreated: page !== null
+        });
+      }
     });
     
     // List available tools
