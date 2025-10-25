@@ -15,20 +15,30 @@ let page: Page | null = null;
 
 async function ensureBrowser() {
   if (!browser) {
-    browser = await chromium.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+    try {
+      browser = await chromium.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+      });
+    } catch (error) {
+      console.error('Failed to launch browser:', error);
+      throw new Error('Browser launch failed');
+    }
   }
   return browser;
 }
 
 async function ensurePage() {
-  await ensureBrowser();
-  if (!page) {
-    page = await browser!.newPage();
+  try {
+    await ensureBrowser();
+    if (!page) {
+      page = await browser!.newPage();
+    }
+    return page;
+  } catch (error) {
+    console.error('Failed to create page:', error);
+    throw new Error('Page creation failed');
   }
-  return page;
 }
 
 // Define available tools
@@ -488,16 +498,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     switch (name) {
       case "navigate": {
-        const p = await ensurePage();
-        await p.goto(args.url as string, { waitUntil: "networkidle" });
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Successfully navigated to ${args.url}`,
-            },
-          ],
-        };
+        try {
+          const p = await ensurePage();
+          await p.goto(args.url as string, { waitUntil: "networkidle" });
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Successfully navigated to ${args.url}`,
+              },
+            ],
+          };
+        } catch (error) {
+          throw new Error(`Navigation failed: ${error instanceof Error ? error.message : String(error)}`);
+        }
       }
 
       case "screenshot": {
