@@ -30,14 +30,17 @@ async function ensureBrowser() {
 
 async function ensurePage() {
   try {
+    console.log('Ensuring browser...');
     await ensureBrowser();
+    console.log('Browser ready, creating page...');
     if (!page) {
       page = await browser!.newPage();
+      console.log('Page created successfully');
     }
     return page;
   } catch (error) {
     console.error('Failed to create page:', error);
-    throw new Error('Page creation failed');
+    throw new Error(`Page creation failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -499,8 +502,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (name) {
       case "navigate": {
         try {
+          console.log('Starting navigation to:', args.url);
           const p = await ensurePage();
+          console.log('Page created, navigating...');
           await p.goto(args.url as string, { waitUntil: "networkidle" });
+          console.log('Navigation successful');
           return {
             content: [
               {
@@ -510,6 +516,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             ],
           };
         } catch (error) {
+          console.error('Navigation error:', error);
           throw new Error(`Navigation failed: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
