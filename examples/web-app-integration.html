@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playwright MCP Client Example</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+            white-space: pre-wrap;
+            word-break: break-all;
+            display: none;
+        }
+        #screenshot {
+            margin-top: 20px;
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .loading {
+            display: none;
+            color: #007bff;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎭 Playwright MCP Client</h1>
+        
+        <div class="form-group">
+            <label for="serverUrl">Server URL:</label>
+            <input type="text" id="serverUrl" value="https://your-app.onrender.com" placeholder="https://your-app.onrender.com">
+        </div>
+
+        <div class="form-group">
+            <label for="apiKey">API Key:</label>
+            <input type="password" id="apiKey" placeholder="Enter your API key">
+        </div>
+
+        <div class="form-group">
+            <label for="tool">Select Tool:</label>
+            <select id="tool">
+                <option value="navigate">Navigate to URL</option>
+                <option value="screenshot">Take Screenshot</option>
+                <option value="click">Click Element</option>
+                <option value="fill">Fill Form Field</option>
+                <option value="evaluate">Evaluate JavaScript</option>
+                <option value="get_content">Get Page Content</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="urlGroup">
+            <label for="url">URL:</label>
+            <input type="text" id="url" value="https://example.com" placeholder="https://example.com">
+        </div>
+
+        <div class="form-group" id="selectorGroup" style="display: none;">
+            <label for="selector">CSS Selector:</label>
+            <input type="text" id="selector" placeholder="button.submit">
+        </div>
+
+        <div class="form-group" id="valueGroup" style="display: none;">
+            <label for="value">Value:</label>
+            <input type="text" id="value" placeholder="Text to fill">
+        </div>
+
+        <div class="form-group" id="scriptGroup" style="display: none;">
+            <label for="script">JavaScript Code:</label>
+            <textarea id="script" rows="4" placeholder="document.title"></textarea>
+        </div>
+
+        <button onclick="executeTool()">Execute</button>
+        <button onclick="listTools()">List Tools</button>
+        
+        <div class="loading" id="loading">⏳ Loading...</div>
+
+        <div id="result"></div>
+        <img id="screenshot" style="display: none;">
+    </div>
+
+    <script>
+        // Show/hide input fields based on selected tool
+        document.getElementById('tool').addEventListener('change', function() {
+            const tool = this.value;
+            document.getElementById('urlGroup').style.display = 'none';
+            document.getElementById('selectorGroup').style.display = 'none';
+            document.getElementById('valueGroup').style.display = 'none';
+            document.getElementById('scriptGroup').style.display = 'none';
+
+            if (tool === 'navigate') {
+                document.getElementById('urlGroup').style.display = 'block';
+            } else if (tool === 'click') {
+                document.getElementById('selectorGroup').style.display = 'block';
+            } else if (tool === 'fill') {
+                document.getElementById('selectorGroup').style.display = 'block';
+                document.getElementById('valueGroup').style.display = 'block';
+            } else if (tool === 'evaluate') {
+                document.getElementById('scriptGroup').style.display = 'block';
+            }
+        });
+
+        async function executeTool() {
+            const serverUrl = document.getElementById('serverUrl').value.trim();
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const tool = document.getElementById('tool').value;
+            const resultDiv = document.getElementById('result');
+            const screenshotImg = document.getElementById('screenshot');
+            const loading = document.getElementById('loading');
+
+            if (!serverUrl) {
+                alert('Please enter server URL');
+                return;
+            }
+
+            if (!apiKey) {
+                alert('Please enter API key');
+                return;
+            }
+
+            // Build arguments based on tool
+            let args = {};
+            if (tool === 'navigate') {
+                args.url = document.getElementById('url').value;
+            } else if (tool === 'click') {
+                args.selector = document.getElementById('selector').value;
+            } else if (tool === 'fill') {
+                args.selector = document.getElementById('selector').value;
+                args.value = document.getElementById('value').value;
+            } else if (tool === 'evaluate') {
+                args.script = document.getElementById('script').value;
+            } else if (tool === 'screenshot') {
+                args.fullPage = true;
+            }
+
+            loading.style.display = 'block';
+            resultDiv.style.display = 'none';
+            screenshotImg.style.display = 'none';
+
+            try {
+                const response = await fetch(`${serverUrl}/execute`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({
+                        tool: tool,
+                        arguments: args
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Request failed');
+                }
+
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+                resultDiv.style.display = 'block';
+
+                // If screenshot, display the image
+                if (tool === 'screenshot' && data.content) {
+                    const imageContent = data.content.find(c => c.type === 'image');
+                    if (imageContent) {
+                        screenshotImg.src = `data:image/png;base64,${imageContent.data}`;
+                        screenshotImg.style.display = 'block';
+                    }
+                }
+
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+                resultDiv.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        async function listTools() {
+            const serverUrl = document.getElementById('serverUrl').value.trim();
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const resultDiv = document.getElementById('result');
+            const loading = document.getElementById('loading');
+
+            if (!serverUrl) {
+                alert('Please enter server URL');
+                return;
+            }
+
+            if (!apiKey) {
+                alert('Please enter API key');
+                return;
+            }
+
+            loading.style.display = 'block';
+            resultDiv.style.display = 'none';
+
+            try {
+                const response = await fetch(`${serverUrl}/tools`, {
+                    headers: {
+                        'X-API-Key': apiKey
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Request failed');
+                }
+
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+                resultDiv.style.display = 'block';
+
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+                resultDiv.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
+

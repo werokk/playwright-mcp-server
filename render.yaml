@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: playwright-mcp-server
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVER_MODE
+        value: http
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: /ms-playwright
+      - key: API_KEY
+        generateValue: true  # Render will generate a secure random key
+      - key: ALLOWED_ORIGINS
+        value: "*"  # Change this to your web app domain(s) for production, e.g., "https://myapp.com,https://www.myapp.com"
+    autoDeploy: true
+    disk:
+      name: playwright-data
+      mountPath: /data
+      sizeGB: 1
+
