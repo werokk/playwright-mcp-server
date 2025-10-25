@@ -8,8 +8,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Install dependencies
-RUN npm install --production=false
+# Install dependencies with memory optimization
+RUN npm install --production=false --no-audit --no-fund
 
 # Copy source code
 COPY src ./src
@@ -17,16 +17,17 @@ COPY src ./src
 # Build TypeScript
 RUN npm run build
 
-# Install Playwright browsers (Chromium only for efficiency)
-RUN npx playwright install chromium
+# Install only Chromium (not all browsers) to save memory
+RUN npx playwright install chromium --with-deps
 
-# Set environment variables for headless operation
+# Set environment variables for headless operation and memory optimization
 ENV NODE_ENV=production
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV NODE_OPTIONS="--max-old-space-size=512"
 
-# Expose port (if needed for HTTP endpoint in future)
+# Expose port
 EXPOSE 3000
 
-# Start the server
-CMD ["npm", "start"]
+# Start the server with memory limits
+CMD ["node", "--max-old-space-size=512", "dist/index.js"]
 

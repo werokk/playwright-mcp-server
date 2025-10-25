@@ -16,7 +16,9 @@ services:
       - key: API_KEY
         value: rnd_IKeEVzwlpCl23yMjemoWs8KAciCx
       - key: ALLOWED_ORIGINS
-        value: "*"  # Change this to your web app domain(s) for production, e.g., "https://myapp.com,https://www.myapp.com"
+        value: "*"
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=512"
     autoDeploy: true
     disk:
       name: playwright-data

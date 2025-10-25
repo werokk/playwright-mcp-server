@@ -13,6 +13,23 @@ import cors from "cors";
 let browser: Browser | null = null;
 let page: Page | null = null;
 
+// Memory management
+function cleanupBrowser() {
+  if (page) {
+    page.close().catch(console.error);
+    page = null;
+  }
+  if (browser) {
+    browser.close().catch(console.error);
+    browser = null;
+  }
+}
+
+// Cleanup on process exit
+process.on('SIGTERM', cleanupBrowser);
+process.on('SIGINT', cleanupBrowser);
+process.on('exit', cleanupBrowser);
+
 async function ensureBrowser() {
   if (!browser) {
     try {
